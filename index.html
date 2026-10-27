@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1c6e8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rivulet</title>
+<meta name="description" content="Real water puzzles. Float a duck, level two columns, lean a bowl, float oil, and weigh a tank until the floor opens.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-screen="boot">
+<canvas id="bg"></canvas>
+<canvas id="fx"></canvas>
+<div id="ui">
+  <section id="boot" class="scr on" aria-label="Loading">
+    <div><h1 class="bootmark">Rivulet</h1><p>FILLING THE GLASS</p></div>
+  </section>
+
+  <section id="title" class="scr">
+    <div class="card">
+      <p class="tag">Draw. Guide. Fill.</p>
+      <h1 class="word">Rivulet</h1>
+      <p class="starsum" id="starSum">0 stars</p>
+      <button class="btn wide" id="bPlay" type="button">Play</button>
+      <button class="btn wide ghost" id="bLevels" type="button">Levels</button>
+      <div class="toggles">
+        <button class="chip" id="tSound" type="button">Sound</button>
+        <button class="chip" id="tMusic" type="button">Music</button>
+        <button class="chip" id="tQual" type="button">Auto</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="select" class="scr">
+    <button class="btn ghost back" id="bSelectBack" type="button">Back</button>
+    <h2>Levels</h2>
+    <p class="starsum" id="starSum2"></p>
+    <div id="lvGrid"></div>
+  </section>
+
+  <div id="hud">
+    <div class="topbar">
+      <button class="iconbtn" id="btnPause" type="button" aria-label="Pause"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+      <div class="mid">
+        <div class="lvname"><span id="lvNum"></span> <span id="lvName"></span></div>
+        <div class="meters">
+          <div class="meter" aria-hidden="true"><i id="fillBar"></i></div>
+          <span id="fillTxt">0%</span>
+          <span id="inkTxt"></span>
+          <span id="timeTxt">0:00</span>
+        </div>
+      </div>
+      <button class="iconbtn" id="btnQuality" type="button" aria-label="Graphics quality">Auto</button>
+    </div>
+    <div id="coach" class="coach hide"></div>
+    <div class="botbar">
+      <button class="tool" id="btnUndo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M8 8H4v4"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4.5 11a8 8 0 1 0 2-5.5L4 8"/></svg><span>Undo</span></button>
+      <button class="tool" id="btnRestart" type="button" aria-label="Retry"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg><span>Retry</span></button>
+      <button class="tool reward" id="btnHint" type="button" aria-label="Hint"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 18h6v1.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 19.5V18z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 18h8M12 3a6 6 0 0 0-3.2 11c.5.4.8 1 .9 1.6h4.6c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"/></svg><span>Hint</span></button>
+      <button class="tool tiltbtn" id="btnLeanL" type="button" aria-label="Lean left">‹ <span>Lean</span></button>
+      <button class="tool tiltbtn" id="btnLeanR" type="button" aria-label="Lean right"><span>Lean</span> ›</button>
+    </div>
+  </div>
+
+  <div id="pause" class="modal">
+    <div class="card">
+      <h3>Paused</h3>
+      <button class="btn wide" id="bResume" type="button">Resume</button>
+      <button class="btn wide ghost" id="bPauseRetry" type="button">Retry</button>
+      <button class="btn wide ghost" id="bPauseLevels" type="button">Levels</button>
+    </div>
+  </div>
+
+  <div id="win" class="modal">
+    <div class="card">
+      <h3 id="winTitle">Filled</h3>
+      <div class="starrow" id="winStars"></div>
+      <p class="fine" id="winFine"></p>
+      <button class="btn wide" id="bNext" type="button">Next</button>
+      <button class="btn wide ghost" id="bWinRetry" type="button">Replay</button>
+      <button class="btn wide ghost" id="bWinLevels" type="button">Levels</button>
+    </div>
+  </div>
+
+  <div id="fail" class="modal">
+    <div class="card">
+      <h3>Missed the glass</h3>
+      <p class="fine">The pour ran out. Try a different path.</p>
+      <button class="btn wide" id="bFailRetry" type="button">Try again</button>
+      <button class="btn wide ghost" id="bFailLevels" type="button">Levels</button>
+      <button class="btn wide reward" id="bFailHint" type="button">Hint</button>
+    </div>
+  </div>
+
+  <div id="hint" class="modal">
+    <div class="card">
+      <h3>Hint</h3>
+      <p class="fine" id="hintText"></p>
+      <button class="btn wide" id="bHintOk" type="button">Back to the water</button>
+    </div>
+  </div>
+</div>
+<script src="ads.js"></script>
+<script src="audio.js"></script>
+<script src="sim.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+<script type="module" src="fluid.js?v=5"></script>
+</body>
+</html>
