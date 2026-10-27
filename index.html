@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#1c6e8a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Rivulet</title>
-<meta name="description" content="Real water puzzles. Float a duck, level two columns, lean a bowl, float oil, and weigh a tank until the floor opens.">
-<link rel="stylesheet" href="style.css">
+<meta name="description" content="Real water puzzles. Float a duck, share a waterline, lean a bowl, layer oil, weigh a hatch, and guide steam, sand, and a mill wheel.">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body data-screen="boot">
 <canvas id="bg"></canvas>
@@ -19,7 +19,7 @@
 
   <section id="title" class="scr">
     <div class="card">
-      <p class="tag">Draw. Guide. Fill.</p>
+      <p class="tag">Draw the water home</p>
       <h1 class="word">Rivulet</h1>
       <p class="starsum" id="starSum">0 stars</p>
       <button class="btn wide" id="bPlay" type="button">Play</button>
@@ -33,9 +33,13 @@
   </section>
 
   <section id="select" class="scr">
-    <button class="btn ghost back" id="bSelectBack" type="button">Back</button>
-    <h2>Levels</h2>
-    <p class="starsum" id="starSum2"></p>
+    <div class="selbar">
+      <button class="btn ghost back" id="bSelectBack" type="button">Back</button>
+      <div class="maphead">
+        <h2>Levels</h2>
+        <p class="starsum" id="starSum2"></p>
+      </div>
+    </div>
     <div id="lvGrid"></div>
   </section>
 
@@ -73,7 +77,7 @@
   </div>
 
   <div id="win" class="modal">
-    <div class="card">
+    <div class="card result">
       <h3 id="winTitle">Filled</h3>
       <div class="starrow" id="winStars"></div>
       <p class="fine" id="winFine"></p>
@@ -105,7 +109,7 @@
 <script src="audio.js"></script>
 <script src="sim.js"></script>
 <script src="levels.js"></script>
-<script src="game.js?v=3"></script>
-<script type="module" src="fluid.js?v=7"></script>
+<script src="game.js?v=5"></script>
+<script type="module" src="fluid.js?v=8"></script>
 </body>
 </html>

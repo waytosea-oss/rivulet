@@ -67,6 +67,16 @@
     var map = level.map;
     var base = new Uint8Array(COLS * ROWS);
     var ice = new Uint8Array(COLS * ROWS);
+    var sandHome = new Uint8Array(COLS * ROWS);
+    var sand = new Uint8Array(COLS * ROWS);
+    var heat = new Uint8Array(COLS * ROWS);
+    var cold = new Uint8Array(COLS * ROWS);
+    var condenser = new Uint8Array(COLS * ROWS);
+    var frozen = new Uint8Array(COLS * ROWS);
+    var sandWet = new Uint8Array(COLS * ROWS);
+    var coldWet = new Uint16Array(COLS * ROWS);
+    var iceMelt = new Uint16Array(COLS * ROWS);
+    var sceneryRev = 1;
     var moss = new Uint8Array(COLS * ROWS);
     var poison = new Uint8Array(COLS * ROWS);
     var mold = new Uint8Array(COLS * ROWS);
@@ -112,8 +122,12 @@
       for (var c = 0; c < COLS; c++) {
         var ch = row[c] || '.';
         var i = r * COLS + c;
-        if (ch === '#' || ch === 'i' || ch === 'H' || ch === 'X') { base[i] = 1; solid0[i] = 1; }
+        if (ch === '#' || ch === 'i' || ch === 'H' || ch === 'X' || ch === 'n') { base[i] = 1; solid0[i] = 1; }
         if (ch === 'i') ice[i] = 1;
+        if (ch === 'n') { sandHome[i] = 1; sand[i] = 1; }
+        if (ch === 'z') heat[i] = 1;
+        if (ch === 'k') condenser[i] = 1;
+        if (ch === 'e') cold[i] = 1;
         if (ch === 'M') moss[i] = 1;
         if (ch === 'P') poison[i] = 1;
         if (ch === 'o') mold[i] = 1;
@@ -167,6 +181,9 @@
       }
     }
 
+    var iceHome = new Uint8Array(ice);
+    var solidHome = new Uint8Array(solid0);
+    var baseHome = new Uint8Array(base);
     var sealed = new Uint8Array(COLS * ROWS);
     var lavaSeen = new Uint8Array(COLS * ROWS);
     var waterSeen = new Uint8Array(COLS * ROWS);
@@ -226,6 +243,27 @@
         leftY: b.leftRow != null ? (ROWS - b.leftRow) * CELL : null,
         rightY: b.rightRow != null ? (ROWS - b.rightRow) * CELL : null,
         leap: b.leap || 1.65
+      };
+    });
+    var wheels = (level.wheels || []).map(function (w) {
+      var ww = w.w || 2, hh = w.h || 2;
+      var x0 = w.c * CELL, x1 = (w.c + ww) * CELL;
+      var yTop = (ROWS - w.r) * CELL, yBot = (ROWS - (w.r + hh)) * CELL;
+      return {
+        x0: x0, x1: x1, y0: yBot, y1: yTop,
+        cx: (x0 + x1) / 2, cy: (yBot + yTop) / 2,
+        hw: (x1 - x0) / 2, hh: (yTop - yBot) / 2,
+        need: w.basin != null ? scaleCount(w.need || 22, preset) : (w.need || 28),
+        spin: 0, angle: 0, latched: false,
+        basin: w.basin == null ? -1 : w.basin
+      };
+    });
+    var splits = (level.splits || []).map(function (s) {
+      var ww = s.w || 2, hh = s.h || 2;
+      return {
+        x0: s.c * CELL, x1: (s.c + ww) * CELL,
+        y1: (ROWS - s.r) * CELL, y0: (ROWS - (s.r + hh)) * CELL,
+        left: s.left == null ? 0.45 : s.left
       };
     });
 
@@ -882,7 +920,7 @@
       }
     }
     function stepBasins(dt) {
-      if (!basins.length && !level.siphon) return;
+      if (!basins.length && !level.siphon) { stepWheels(dt); return; }
       captureBasins();
       for (var i = 0; i < basins.length; i++) {
         var b = basins[i];
@@ -966,6 +1004,55 @@
       }
       if (level.siphon) basinSiphon(dt);
       layoutBasins();
+      stepWheels(dt);
+    }
+    function stepWheels(dt) {
+      var opened = false;
+      for (var w = 0; w < wheels.length; w++) {
+        var wh = wheels[w];
+        if (wh.latched) { wh.angle += 2.4 * dt; continue; }
+        if (wh.basin >= 0 && basins[wh.basin]) {
+          var flow = basins[wh.basin].water + basins[wh.basin].oil;
+          wh.angle += Math.min(6, flow * 0.15) * dt * 6;
+          if (flow >= wh.need) { wh.latched = true; opened = true; }
+          continue;
+        }
+        var hit = 0;
+        for (var i = 0; i < P.n; i++) {
+          if (P.pin[i] || P.steam[i] || !liquidish(P.cid[i])) continue;
+          if (P.x[i] < wh.x0 || P.x[i] > wh.x1 || P.y[i] < wh.y0 || P.y[i] > wh.y1) continue;
+          if (Math.abs(P.vx[i]) + Math.abs(P.vy[i]) > 0.3) hit++;
+        }
+        if (hit) { wh.spin += 1; wh.angle += Math.min(5, hit * 0.4); }
+        if (wh.spin >= wh.need) { wh.latched = true; opened = true; }
+      }
+      if (opened && !gateOpen) { gateOpen = true; clearSolids(gateCells); }
+    }
+    function stepSplit() {
+      if (!splits.length) return;
+      for (var i = 0; i < P.n; i++) {
+        if (P.pin[i] || P.vz[i] || P.steam[i] || !liquidish(P.cid[i])) continue;
+        for (var s = 0; s < splits.length; s++) {
+          var z = splits[s];
+          if (P.x[i] < z.x0 || P.x[i] > z.x1 || P.y[i] < z.y0 || P.y[i] > z.y1) continue;
+          var left = ((i * 13 + 5) % 100) < z.left * 100;
+          P.vz[i] = left ? 1 : 2;
+          P.vx[i] += left ? -2.4 : 2.4;
+          break;
+        }
+      }
+    }
+    function aimCup(x, y, cid) {
+      var best = null, bestD = CELL * 2.6;
+      for (var v = 0; v < vessels.length; v++) {
+        var cup = vessels[v];
+        if (cup.dynamic || cup.tipped) continue;
+        var dx = Math.abs(cup.x - x);
+        if (dx < bestD && cup.y < y + CELL) { best = cup; bestD = dx; }
+      }
+      if (!best) return spawnDrop(x, y - 0.02, 0, -1.35, cid);
+      var lip = best.y + best.hh * 0.35;
+      return spawnDrop(best.x, Math.min(y - 0.015, lip), 0, -1.65, cid);
     }
     function basinSiphon(dt) {
       var rods = rodList();
@@ -999,8 +1086,7 @@
         var out = ends[1 - inlet];
         var cid = takeFluid(basins[bin], false);
         if (cid < 0) continue;
-        var dir = out.x >= ends[inlet].x ? 1 : -1;
-        if (!spawnDrop(out.x + dir * 0.02, out.y - 0.02, dir * 0.4, -1.15, cid)) {
+        if (!aimCup(out.x, out.y, cid)) {
           basins[bin].water++;
           continue;
         }
@@ -1159,10 +1245,62 @@
         if (inside && mold[idx] && !sealed[idx] && lavaSeen[idx] && waterSeen[idx]) {
           sealed[idx] = 1;
           stampCell(fineBase, wc.c, wc.r);
+          sceneryRev++;
         }
         if (P.cid[i] === CID_LAVA && inside && sealed[idx]) { kill(i); i++; continue; }
         if (waterish(P.cid[i]) && !P.steam[i] && inside && moss[idx]) { absorbPulse++; kill(i); i++; continue; }
         if (waterish(P.cid[i]) && !P.steam[i] && inside && poison[idx]) P.cid[i] = CID_VENOM;
+        if (waterish(P.cid[i]) && !P.steam[i] && inside) {
+          var touch = [idx];
+          if (idx % COLS !== 0) touch.push(idx - 1);
+          if (idx % COLS !== COLS - 1) touch.push(idx + 1);
+          if (idx >= COLS) touch.push(idx - COLS);
+          if (idx < COLS * (ROWS - 1)) touch.push(idx + COLS);
+          for (var sn = 0; sn < touch.length; sn++) {
+            var si = touch[sn];
+            if (!sand[si]) continue;
+            var sw = sandWet[si] + 1;
+            sandWet[si] = sw > 250 ? 250 : sw;
+            if (sw >= (level.sandHits || 5)) {
+              sand[si] = 0; solid0[si] = 0; base[si] = 0;
+              sceneryRev++;
+              rebuildStaticFine();
+            }
+          }
+        }
+        if (waterish(P.cid[i]) && !P.steam[i] && inside && cold[idx] && !solid0[idx]) {
+          var cw = coldWet[idx] + 1;
+          coldWet[idx] = cw > 4000 ? 4000 : cw;
+          if (cw >= (level.freezeHits || 8)) {
+            frozen[idx] = 1; solid0[idx] = 1; base[idx] = 1;
+            sceneryRev++;
+            rebuildStaticFine();
+          }
+        }
+        if (level.melt && waterish(P.cid[i]) && !P.steam[i] && inside) {
+          var dirs = [1, -1, COLS, -COLS];
+          for (var di = 0; di < 4; di++) {
+            if (dirs[di] === 1 && (idx % COLS) === COLS - 1) continue;
+            if (dirs[di] === -1 && (idx % COLS) === 0) continue;
+            var ni = idx + dirs[di];
+            if (ni < 0 || ni >= COLS * ROWS || !ice[ni] || !solid0[ni]) continue;
+            var mh = iceMelt[ni] + 1;
+            iceMelt[ni] = mh > 4000 ? 4000 : mh;
+            if (mh >= (level.meltHits || 12)) {
+              ice[ni] = 0; solid0[ni] = 0; base[ni] = 0;
+              sceneryRev++;
+              rebuildStaticFine();
+            }
+          }
+        }
+        if (!level.melt && waterish(P.cid[i]) && !P.steam[i] && inside && heat[idx]) {
+          P.steam[i] = 1;
+          if (P.vy[i] < 0.5) P.vy[i] = 0.85;
+        }
+        if (P.steam[i] && inside && condenser[idx]) {
+          P.steam[i] = 0;
+          P.vy[i] = -0.45;
+        }
         if (waterish(P.cid[i]) && !P.steam[i]) {
           var burnt = false;
           for (var f = 0; f < fires.length; f++) {
@@ -1220,11 +1358,15 @@
       for (var r = 0; r < rods.length; r++) stepRod(rods[r], dt);
       stepCups(dt);
       if (!basins.length) stepSiphon(dt);
+      stepSplit();
       var n = P.n;
       for (var i = 0; i < n; i++) {
         if (P.pin[i]) continue;
         P.vx[i] += gravX * dt;
         P.vy[i] += gravY * dt;
+        if (P.steam[i]) P.vy[i] += 22 * dt;
+        else if (P.vz[i] === 1) P.vx[i] -= 18 * dt;
+        else if (P.vz[i] === 2) P.vx[i] += 18 * dt;
         guideInk(i, dt);
         var dmp = 1 - 0.12 * dt;
         P.vx[i] *= dmp; P.vy[i] *= dmp;
@@ -1361,7 +1503,12 @@
     var history = [];
     function resetFlags() {
       sealed.fill(0); lavaSeen.fill(0); waterSeen.fill(0);
+      solid0.set(solidHome); base.set(baseHome);
+      sand.set(sandHome); ice.set(iceHome);
+      frozen.fill(0); sandWet.fill(0); coldWet.fill(0); iceMelt.fill(0);
+      sceneryRev++;
       hatchOpen = false; gateOpen = false;
+      for (var wi = 0; wi < wheels.length; wi++) { wheels[wi].spin = 0; wheels[wi].angle = 0; wheels[wi].latched = false; }
       for (var bi = 0; bi < basins.length; bi++) { basins[bi].water = 0; basins[bi].oil = 0; }
       restoreSolids(hatchCells); restoreSolids(gateCells);
       for (var fi = 0; fi < floats.length; fi++) {
@@ -1445,6 +1592,11 @@
       get hatches() { return hatchCells; },
       get gates() { return gateCells; },
       get basins() { return basins; },
+      get wheels() { return wheels; },
+      get sand() { return sand; },
+      get ice() { return ice; },
+      get frozen() { return frozen; },
+      get scenery() { return sceneryRev; },
       get hatchOpen() { return hatchOpen; },
       get gateOpen() { return gateOpen; },
       get tilt() { return gravX / 8.2; },
