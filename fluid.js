@@ -159,7 +159,7 @@ function initGL() {
         vec2 c = gl_PointCoord * 2.0 - 1.0;
         float r2 = dot(c, c); if (r2 > 1.0) discard;
         float nz = sqrt(1.0 - r2);
-        float t = nz * vR * 260.0;
+        float t = nz * vR * 70.0;
         gl_FragColor = vec4(waterColor(vId) * t, t);
       }`,
     depthTest: false, depthWrite: false, transparent: true,
@@ -248,27 +248,28 @@ function initGL() {
         if (n.z < 0.0) n = -n;
         n = normalize(mix(n, vec3(0.0, 0.0, 1.0), 0.18));
         vec3 viewDir = vec3(0.0, 0.15, 1.0);
-        float t = clamp(th * 1.35, 0.0, 5.0);
+        float t = clamp(th * 0.28, 0.0, 1.1);
         float oil = smoothstep(0.55, 0.9, tint.r) * (1.0 - smoothstep(0.25, 0.7, tint.b));
-        vec3 sigma = mix(vec3(1.15, 0.42, 0.14), vec3(0.18, 0.55, 1.7), oil);
+        vec3 sigma = mix(vec3(0.85, 0.28, 0.08), vec3(0.12, 0.42, 1.35), oil);
         vec3 beer = exp(-sigma * t);
-        vec2 ruv = vUv + n.xy * (0.012 + 0.01 * t);
+        vec2 ruv = vUv + n.xy * (0.018 + 0.02 * t);
         vec3 refr = texture2D(bg, clamp(ruv, 0.002, 0.998)).rgb;
-        vec3 trans = refr * beer + tint * (1.0 - beer) * 0.55;
+        vec3 trans = refr * beer + tint * (1.0 - beer) * 0.42;
         float ndv = clamp(dot(n, viewDir), 0.0, 1.0);
-        float fres = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+        float fres = 0.03 + 0.97 * pow(1.0 - ndv, 3.0);
         vec3 L1 = normalize(vec3(-0.35, 0.72, 0.6));
-        float spec = pow(max(dot(n, normalize(L1 + viewDir)), 0.0), uLite > 0.5 ? 48.0 : 90.0);
+        float spec = pow(max(dot(n, normalize(L1 + viewDir)), 0.0), uLite > 0.5 ? 28.0 : 64.0);
         if (uLite < 0.5) {
           vec3 L2 = normalize(vec3(0.55, 0.15, 0.82));
-          spec += pow(max(dot(n, normalize(L2 + viewDir)), 0.0), 36.0) * 0.45;
+          spec += pow(max(dot(n, normalize(L2 + viewDir)), 0.0), 18.0) * 0.55;
         }
-        spec *= 0.62;
-        vec3 env = mix(vec3(0.55, 0.78, 0.92), vec3(1.0, 0.98, 0.94), smoothstep(-0.2, 0.85, reflect(-viewDir, n).y));
-        vec3 col = mix(trans, env, fres * 0.55) + spec * vec3(1.0, 0.99, 0.94);
-        float foam = smoothstep(0.55, 0.04, th) * smoothstep(0.0, 0.035, th);
-        foam = max(foam, smoothstep(0.45, 0.9, 1.0 - n.z) * smoothstep(0.05, 0.35, th));
-        col = mix(col, vec3(0.94, 0.98, 1.0), clamp(foam, 0.0, 0.72) * 0.62);
+        spec *= 0.85;
+        vec3 env = mix(vec3(0.62, 0.82, 0.95), vec3(1.0, 0.98, 0.94), smoothstep(-0.2, 0.85, reflect(-viewDir, n).y));
+        vec3 col = mix(trans, env, fres * 0.72) + spec * vec3(1.0, 0.99, 0.94);
+        col += vec3(0.08, 0.10, 0.12) * clamp(n.y, 0.0, 1.0);
+        float foam = smoothstep(0.22, 0.02, th) * smoothstep(0.0, 0.02, th);
+        foam = max(foam, smoothstep(0.35, 0.8, 1.0 - n.z) * smoothstep(0.04, 0.2, th));
+        col = mix(col, vec3(0.93, 0.98, 1.0), clamp(foam, 0.0, 0.9));
         float a = smoothstep(0.01, 0.08, th);
         gl_FragColor = vec4(mix(base, col, a), 1.0);
       }`,

@@ -255,9 +255,10 @@
   }
   function drawInk(ctx) {
     if (!sim || !sim.strokes.length) return;
-    ctx.strokeStyle = '#2c241c';
+    var width = Math.max(4, (0.042 / BW) * view.bw);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(5, 0.05 * view.bw / BW * 40);
+    ctx.lineWidth = width;
+    ctx.strokeStyle = '#2c241c';
     ctx.beginPath();
     sim.strokes.forEach(function (s) {
       s.pts.forEach(function (p, k) {
@@ -267,7 +268,7 @@
     });
     ctx.stroke();
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
-    ctx.lineWidth = Math.max(2, ctx.lineWidth * 0.28);
+    ctx.lineWidth = Math.max(1.5, width * 0.28);
     ctx.stroke();
   }
 
@@ -376,7 +377,7 @@
     if (window.FLUID && FLUID.ok && sim) {
       FLUID.setView(view, BW, BH);
       FLUID.setBackground(bg);
-      FLUID.setRadius(sim.RAD * sim.preset.radMul * 3.35);
+      FLUID.setRadius(sim.RAD * sim.preset.radMul * 5.1);
       FLUID.sync(sim.P);
       if (!FLUID._laid) { FLUID.setQuality(qualityMode); FLUID._laid = true; }
       FLUID.render(16);
