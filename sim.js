@@ -133,8 +133,12 @@
         if (ch === 'o') mold[i] = 1;
         if (ch === 'C') cupOf[i] = 0;
         else if (ch === 'D') cupOf[i] = 1;
-        else if (ch === 'E') cupOf[i] = 2;
+        else         if (ch === 'E') cupOf[i] = 2;
       }
+    }
+    var condXs = [];
+    for (var ck = 0; ck < condenser.length; ck++) {
+      if (condenser[ck]) condXs.push(((ck % COLS) + 0.5) * CELL);
     }
 
     var dynSpecs = level.dynCups || [];
@@ -254,7 +258,7 @@
         cx: (x0 + x1) / 2, cy: (yBot + yTop) / 2,
         hw: (x1 - x0) / 2, hh: (yTop - yBot) / 2,
         need: w.basin != null ? scaleCount(w.need || 22, preset) : (w.need || 28),
-        spin: 0, angle: 0, latched: false,
+        spin: 0, angle: 0, rate: 0, latched: false,
         basin: w.basin == null ? -1 : w.basin
       };
     });
@@ -1010,21 +1014,23 @@
       var opened = false;
       for (var w = 0; w < wheels.length; w++) {
         var wh = wheels[w];
-        if (wh.latched) { wh.angle += 2.4 * dt; continue; }
-        if (wh.basin >= 0 && basins[wh.basin]) {
+        var target = wh.latched ? 9 : 0;
+        if (!wh.latched && wh.basin >= 0 && basins[wh.basin]) {
           var flow = basins[wh.basin].water + basins[wh.basin].oil;
-          wh.angle += Math.min(6, flow * 0.15) * dt * 6;
-          if (flow >= wh.need) { wh.latched = true; opened = true; }
-          continue;
+          target = Math.min(16, flow * 0.62);
+          if (flow >= wh.need) { wh.latched = true; opened = true; target = 9; }
+        } else if (!wh.latched) {
+          var hit = 0;
+          for (var i = 0; i < P.n; i++) {
+            if (P.pin[i] || P.steam[i] || !liquidish(P.cid[i])) continue;
+            if (P.x[i] < wh.x0 || P.x[i] > wh.x1 || P.y[i] < wh.y0 || P.y[i] > wh.y1) continue;
+            if (Math.abs(P.vx[i]) + Math.abs(P.vy[i]) > 0.3) hit++;
+          }
+          if (hit) { wh.spin += 1; target = Math.min(18, 5 + hit); }
+          if (wh.spin >= wh.need) { wh.latched = true; opened = true; target = 9; }
         }
-        var hit = 0;
-        for (var i = 0; i < P.n; i++) {
-          if (P.pin[i] || P.steam[i] || !liquidish(P.cid[i])) continue;
-          if (P.x[i] < wh.x0 || P.x[i] > wh.x1 || P.y[i] < wh.y0 || P.y[i] > wh.y1) continue;
-          if (Math.abs(P.vx[i]) + Math.abs(P.vy[i]) > 0.3) hit++;
-        }
-        if (hit) { wh.spin += 1; wh.angle += Math.min(5, hit * 0.4); }
-        if (wh.spin >= wh.need) { wh.latched = true; opened = true; }
+        wh.rate = (wh.rate || 0) * 0.78 + target * 0.22;
+        wh.angle += wh.rate * dt;
       }
       if (opened && !gateOpen) { gateOpen = true; clearSolids(gateCells); }
     }
@@ -1295,6 +1301,7 @@
         }
         if (!level.melt && waterish(P.cid[i]) && !P.steam[i] && inside && heat[idx]) {
           P.steam[i] = 1;
+          P.vx[i] *= 0.2;
           if (P.vy[i] < 0.5) P.vy[i] = 0.85;
         }
         if (P.steam[i] && inside && condenser[idx]) {
@@ -1364,7 +1371,19 @@
         if (P.pin[i]) continue;
         P.vx[i] += gravX * dt;
         P.vy[i] += gravY * dt;
-        if (P.steam[i]) P.vy[i] += 22 * dt;
+        if (P.steam[i]) {
+          P.vy[i] += 22 * dt;
+          if (condXs.length) {
+            var best = condXs[0], bd = Math.abs(best - P.x[i]);
+            for (var cq = 1; cq < condXs.length; cq++) {
+              var dd = Math.abs(condXs[cq] - P.x[i]);
+              if (dd < bd) { bd = dd; best = condXs[cq]; }
+            }
+            P.vx[i] += (best - P.x[i]) * 16 * dt;
+            if (P.vx[i] > 0.45) P.vx[i] = 0.45;
+            if (P.vx[i] < -0.45) P.vx[i] = -0.45;
+          }
+        }
         else if (P.vz[i] === 1) P.vx[i] -= 18 * dt;
         else if (P.vz[i] === 2) P.vx[i] += 18 * dt;
         guideInk(i, dt);
@@ -1508,7 +1527,7 @@
       frozen.fill(0); sandWet.fill(0); coldWet.fill(0); iceMelt.fill(0);
       sceneryRev++;
       hatchOpen = false; gateOpen = false;
-      for (var wi = 0; wi < wheels.length; wi++) { wheels[wi].spin = 0; wheels[wi].angle = 0; wheels[wi].latched = false; }
+      for (var wi = 0; wi < wheels.length; wi++) { wheels[wi].spin = 0; wheels[wi].angle = 0; wheels[wi].rate = 0; wheels[wi].latched = false; }
       for (var bi = 0; bi < basins.length; bi++) { basins[bi].water = 0; basins[bi].oil = 0; }
       restoreSolids(hatchCells); restoreSolids(gateCells);
       for (var fi = 0; fi < floats.length; fi++) {

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Rivulet</title>
 <meta name="description" content="Real water puzzles. Float a duck, share a waterline, lean a bowl, layer oil, weigh a hatch, and guide steam, sand, and a mill wheel.">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body data-screen="boot">
 <canvas id="bg"></canvas>
@@ -55,15 +55,15 @@
           <span id="timeTxt">0:00</span>
         </div>
       </div>
-      <button class="iconbtn" id="btnQuality" type="button" aria-label="Graphics quality">Auto</button>
+      <button class="iconbtn qual" id="btnQuality" type="button" aria-label="Graphics quality"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6.2 6.2l1.6 1.6M16.2 16.2l1.6 1.6M17.8 6.2l-1.6 1.6M7.8 16.2l-1.6 1.6"/></svg><span id="qLab">Auto</span></button>
     </div>
     <div id="coach" class="coach hide"></div>
     <div class="botbar">
       <button class="tool" id="btnUndo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M8 8H4v4"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4.5 11a8 8 0 1 0 2-5.5L4 8"/></svg><span>Undo</span></button>
       <button class="tool" id="btnRestart" type="button" aria-label="Retry"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg><span>Retry</span></button>
       <button class="tool reward" id="btnHint" type="button" aria-label="Hint"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 18h6v1.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 19.5V18z"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 18h8M12 3a6 6 0 0 0-3.2 11c.5.4.8 1 .9 1.6h4.6c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3z"/></svg><span>Hint</span></button>
-      <button class="tool tiltbtn" id="btnLeanL" type="button" aria-label="Lean left">‹ <span>Lean</span></button>
-      <button class="tool tiltbtn" id="btnLeanR" type="button" aria-label="Lean right"><span>Lean</span> ›</button>
+      <button class="tool tiltbtn" id="btnLeanL" type="button" aria-label="Lean left"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M14 6l-6 6 6 6"/></svg><span>Lean</span></button>
+      <button class="tool tiltbtn" id="btnLeanR" type="button" aria-label="Lean right"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M10 6l6 6-6 6"/></svg><span>Lean</span></button>
     </div>
   </div>
 
@@ -109,7 +109,7 @@
 <script src="audio.js"></script>
 <script src="sim.js"></script>
 <script src="levels.js"></script>
-<script src="game.js?v=5"></script>
+<script src="game.js?v=7"></script>
 <script type="module" src="fluid.js?v=8"></script>
 </body>
 </html>
